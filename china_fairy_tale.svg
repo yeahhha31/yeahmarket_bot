@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="22" fill="#ed1c24"/>
+  <text x="512" y="220" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="108" font-weight="800">CHINA</text>
+  <g stroke="#111" stroke-width="12" stroke-linejoin="round">
+    <circle cx="348" cy="390" r="58" fill="#050505"/><circle cx="676" cy="390" r="58" fill="#050505"/>
+    <circle cx="348" cy="390" r="29" fill="#ed1c24" stroke="none"/><circle cx="676" cy="390" r="29" fill="#ed1c24" stroke="none"/>
+    <path d="M346 584 C285 555 238 512 195 459 C175 434 183 419 214 430 L364 486 Z" fill="#050505"/>
+    <path d="M678 584 C739 555 786 512 829 459 C849 434 841 419 810 430 L660 486 Z" fill="#050505"/>
+    <ellipse cx="512" cy="474" rx="195" ry="170" fill="#fff"/>
+    <ellipse cx="425" cy="447" rx="47" ry="70" fill="#050505" transform="rotate(28 425 447)"/>
+    <ellipse cx="599" cy="447" rx="47" ry="70" fill="#050505" transform="rotate(-28 599 447)"/>
+    <ellipse cx="434" cy="423" rx="15" ry="24" fill="#fff" stroke="none"/><ellipse cx="590" cy="423" rx="15" ry="24" fill="#fff" stroke="none"/>
+    <path d="M480 499 Q512 476 544 499 Q512 533 480 499 Z" fill="#050505"/>
+    <path d="M466 526 Q512 579 558 526 Q553 590 512 598 Q471 590 466 526 Z" fill="#050505"/>
+    <path d="M493 558 Q512 543 531 558 Q526 580 512 580 Q498 580 493 558 Z" fill="#ed1c24" stroke="none"/>
+  </g>
+  <g><rect x="300" y="620" width="424" height="165" fill="#ffc477"/><rect x="512" y="620" width="212" height="165" fill="#e9ac60"/><path d="M300 620 H724" stroke="#111" stroke-width="10"/></g>
+  <text x="512" y="915" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="84" font-weight="800">FAIRY TALE</text>
+</svg>

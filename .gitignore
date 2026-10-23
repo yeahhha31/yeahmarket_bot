@@ -1,0 +1,6 @@
+__pycache__/
+.idea/
+.DS_Store
+.env
+forum_threads.json
+order_counter.txt
