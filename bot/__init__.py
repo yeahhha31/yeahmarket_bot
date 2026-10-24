@@ -1,1 +1,1 @@
-"""China Fairy Tale bot package."""
+"""yeahmarket_bot package."""

@@ -112,8 +112,8 @@ def handle_text(chat_id: int, text: str, state: BotState) -> None:
             send_message(chat_id, f"Введите положительное число в валюте <b>{currency}</b>, например: <b>299</b>."); return
         state.states.pop(chat_id, None)
         if currency == "CNY":
-            total = amount * Decimal("0.485") * Decimal("1.08")
-            result = f"Ориентировочная стоимость: <b>{total.quantize(Decimal('0.01'))} ₽</b>.\nРасчёт: цена в CNY × 0.485 + 8%."
+            total = amount * Decimal("0.485") * Decimal("1.10")
+            result = f"Ориентировочная стоимость: <b>{total.quantize(Decimal('0.01'))} ₽</b>."
         else:
             result = f"Стоимость товара: <b>{amount.quantize(Decimal('0.01'))} {currency}</b>."
         send_message(chat_id, result, reply_markup=main_keyboard()); return
@@ -144,12 +144,12 @@ def handle_text(chat_id: int, text: str, state: BotState) -> None:
         if text == BUTTON_BACK:
             state.states[chat_id] = f"currency:{platform}"; send_message(chat_id, "Выберите валюту:", reply_markup=currency_keyboard() if platform in FOREIGN_PLATFORMS else category_keyboard()); return
         if text in CATEGORY_BUTTONS:
-            state.states[chat_id] = f"delivery:{platform}|{currency}|{text}"; send_message(chat_id, "📦 <b>Укажите способ доставки:</b>\n\n✈️ Авиа — 3–10 дней\n🚚 Авто — ~20 дней", reply_markup=delivery_keyboard()); return
+            state.states[chat_id] = f"delivery:{platform}|{currency}|{text}"; send_message(chat_id, "📦 <b>Укажите способ доставки:</b>\n\n✈️ Авиа — 3–10 дней, около $35/кг\n🚚 Авто — ~20 дней, около $8/кг", reply_markup=delivery_keyboard()); return
         if text == BUTTON_OTHER_CATEGORY:
             state.states[chat_id] = f"custom_category:{platform}|{currency}"; send_message(chat_id, "Введите категорию товара своими словами."); return
         send_message(chat_id, "Выберите категорию кнопкой ниже.", reply_markup=category_keyboard()); return
     if current.startswith("custom_category:"):
-        platform, currency = current.split(":", 1)[1].split("|", 1); state.states[chat_id] = f"delivery:{platform}|{currency}|{text}"; send_message(chat_id, "📦 <b>Укажите способ доставки:</b>", reply_markup=delivery_keyboard()); return
+        platform, currency = current.split(":", 1)[1].split("|", 1); state.states[chat_id] = f"delivery:{platform}|{currency}|{text}"; send_message(chat_id, "📦 <b>Укажите способ доставки:</b>\n\n✈️ Авиа — 3–10 дней, около $35/кг\n🚚 Авто — ~20 дней, около $8/кг", reply_markup=delivery_keyboard()); return
     if current.startswith("delivery:"):
         platform, currency, category = current.split(":", 1)[1].split("|", 2)
         if text == BUTTON_BACK: state.states[chat_id] = f"category:{platform}|{currency}"; send_message(chat_id, "Выберите категорию:", reply_markup=category_keyboard()); return

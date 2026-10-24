@@ -1,4 +1,4 @@
-"""Application entry point for the China Fairy Tale Telegram bot."""
+"""Application entry point for the yeahmarket_bot Telegram bot."""
 
 from bot.runtime import run
 

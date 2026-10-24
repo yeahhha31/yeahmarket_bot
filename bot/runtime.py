@@ -16,7 +16,7 @@ def run() -> None:
         raise SystemExit("Set BOT_TOKEN before starting the bot")
     state = BotState()
     load(state)
-    log.info("Starting China Fairy Tale bot")
+    log.info("Starting yeahmarket_bot")
     offset = 0
     commands_configured = False
     while True:
