@@ -9,7 +9,7 @@ from typing import Any
 
 from .config import log, settings
 from .constants import *
-from .forum import client_label, relay_customer, relay_manager, submit_order, submit_question
+from .forum import client_label, delete_forum_message_and_copy, relay_customer, relay_manager, submit_order, submit_question
 from .keyboards import *
 from .state import BotState, make_order_state, read_order_state
 from .telegram_api import request, send_local_photo, send_message
@@ -18,6 +18,47 @@ from .validation import check_product_link
 
 def welcome(chat_id: int) -> None:
     send_message(chat_id, WELCOME_TEXT, reply_markup=main_keyboard())
+
+
+def order_summary_text(items: list[dict[str, str]]) -> str:
+    lines = ["<b>Проверьте данные заявки:</b>", ""]
+    for number, data in enumerate(items, 1):
+        link = escape(data["link"], quote=True)
+        lines.extend([
+            f"<b>Товар {number}</b>",
+            f"Ссылка: <a href=\"{link}\">{link}</a>",
+            f"Количество: {data['quantity']}",
+            f"Размер: {escape(data['size'])}",
+            f"Стоимость в {escape(data['currency'])}: {data['price']}",
+        ])
+        if data["currency"] == "CNY":
+            rubles = (Decimal(data["price"]) * Decimal(data["quantity"]) * Decimal("0.495") * Decimal("1.10")).quantize(Decimal("0.01"))
+            lines.append(f"Стоимость в рублях: {rubles} ₽")
+        lines.append("")
+    return "\n".join(lines).rstrip()
+
+
+def order_total_text(items: list[dict[str, str]]) -> str:
+    totals: dict[str, Decimal] = {}
+    for data in items:
+        currency = data["currency"]
+        totals[currency] = totals.get(currency, Decimal("0")) + Decimal(data["price"]) * int(data["quantity"])
+
+    lines = ["💳 <b>Общая стоимость заказа:</b>"]
+    if len(totals) == 1:
+        currency, total = next(iter(totals.items()))
+        lines.append(f"<b>{total.quantize(Decimal('0.01'))} {escape(currency)}</b>")
+        if currency == "CNY":
+            rubles = (total * Decimal("0.495") * Decimal("1.10")).quantize(Decimal("0.01"))
+            lines.append(f"<b>{rubles} ₽</b>")
+    else:
+        lines.append("Товары в разных валютах:")
+        for currency, total in totals.items():
+            lines.append(f"• <b>{total.quantize(Decimal('0.01'))} {escape(currency)}</b>")
+            if currency == "CNY":
+                rubles = (total * Decimal("0.495") * Decimal("1.10")).quantize(Decimal("0.01"))
+                lines.append(f"  └ {rubles} ₽")
+    return "\n".join(lines)
 
 
 def product_photo_prompt(chat_id: int) -> None:
@@ -49,6 +90,8 @@ def handle_text(chat_id: int, text: str, state: BotState) -> None:
     current = state.states.get(chat_id, "")
     if text.startswith("/start") or text == "/menu":
         state.states.pop(chat_id, None)
+        state.delivery_preferences.pop(chat_id, None)
+        state.order_carts.pop(chat_id, None)
         welcome(chat_id)
         return
     if text in {"/cancel", "Отмена"}:
@@ -112,7 +155,7 @@ def handle_text(chat_id: int, text: str, state: BotState) -> None:
             send_message(chat_id, f"Введите положительное число в валюте <b>{currency}</b>, например: <b>299</b>."); return
         state.states.pop(chat_id, None)
         if currency == "CNY":
-            total = amount * Decimal("0.485") * Decimal("1.10")
+            total = amount * Decimal("0.495") * Decimal("1.10")
             result = f"Ориентировочная стоимость: <b>{total.quantize(Decimal('0.01'))} ₽</b>."
         else:
             result = f"Стоимость товара: <b>{amount.quantize(Decimal('0.01'))} {currency}</b>."
@@ -144,16 +187,37 @@ def handle_text(chat_id: int, text: str, state: BotState) -> None:
         if text == BUTTON_BACK:
             state.states[chat_id] = f"currency:{platform}"; send_message(chat_id, "Выберите валюту:", reply_markup=currency_keyboard() if platform in FOREIGN_PLATFORMS else category_keyboard()); return
         if text in CATEGORY_BUTTONS:
-            state.states[chat_id] = f"delivery:{platform}|{currency}|{text}"; send_message(chat_id, "📦 <b>Укажите способ доставки:</b>\n\n✈️ Авиа — 3–10 дней, около $35/кг\n🚚 Авто — ~20 дней, около $8/кг", reply_markup=delivery_keyboard()); return
+            if platform not in CHINESE_PLATFORMS:
+                state.states[chat_id] = f"order_photo:{platform}|{currency}|{text}|Не указана"
+                product_photo_prompt(chat_id)
+            elif chat_id in state.delivery_preferences:
+                delivery = state.delivery_preferences[chat_id]
+                state.states[chat_id] = f"order_photo:{platform}|{currency}|{text}|{delivery}"
+                product_photo_prompt(chat_id)
+            else:
+                state.states[chat_id] = f"delivery:{platform}|{currency}|{text}"; send_message(chat_id, "📦 <b>Укажите способ доставки:</b>\n\n✈️ Авиа — 3–10 дней, около $35/кг\n🚚 Авто — ~20 дней, около $8/кг", reply_markup=delivery_keyboard())
+            return
         if text == BUTTON_OTHER_CATEGORY:
             state.states[chat_id] = f"custom_category:{platform}|{currency}"; send_message(chat_id, "Введите категорию товара своими словами."); return
         send_message(chat_id, "Выберите категорию кнопкой ниже.", reply_markup=category_keyboard()); return
     if current.startswith("custom_category:"):
-        platform, currency = current.split(":", 1)[1].split("|", 1); state.states[chat_id] = f"delivery:{platform}|{currency}|{text}"; send_message(chat_id, "📦 <b>Укажите способ доставки:</b>\n\n✈️ Авиа — 3–10 дней, около $35/кг\n🚚 Авто — ~20 дней, около $8/кг", reply_markup=delivery_keyboard()); return
+        platform, currency = current.split(":", 1)[1].split("|", 1)
+        if platform not in CHINESE_PLATFORMS:
+            state.states[chat_id] = f"order_photo:{platform}|{currency}|{text}|Не указана"
+            product_photo_prompt(chat_id)
+        elif chat_id in state.delivery_preferences:
+            delivery = state.delivery_preferences[chat_id]
+            state.states[chat_id] = f"order_photo:{platform}|{currency}|{text}|{delivery}"
+            product_photo_prompt(chat_id)
+        else:
+            state.states[chat_id] = f"delivery:{platform}|{currency}|{text}"; send_message(chat_id, "📦 <b>Укажите способ доставки:</b>\n\n✈️ Авиа — 3–10 дней, около $35/кг\n🚚 Авто — ~20 дней, около $8/кг", reply_markup=delivery_keyboard())
+        return
     if current.startswith("delivery:"):
         platform, currency, category = current.split(":", 1)[1].split("|", 2)
         if text == BUTTON_BACK: state.states[chat_id] = f"category:{platform}|{currency}"; send_message(chat_id, "Выберите категорию:", reply_markup=category_keyboard()); return
-        if text in {BUTTON_AIR_DELIVERY, BUTTON_AUTO_DELIVERY}: state.states[chat_id] = f"order_photo:{platform}|{currency}|{category}|{text}"; product_photo_prompt(chat_id); return
+        if text in {BUTTON_AIR_DELIVERY, BUTTON_AUTO_DELIVERY}:
+            state.delivery_preferences[chat_id] = text
+            state.states[chat_id] = f"order_photo:{platform}|{currency}|{category}|{text}"; product_photo_prompt(chat_id); return
         send_message(chat_id, "Выберите способ доставки кнопкой ниже.", reply_markup=delivery_keyboard()); return
     if current.startswith("order_link:"):
         parts = current.split(":", 1)[1].split("|", 3)
@@ -176,20 +240,31 @@ def handle_text(chat_id: int, text: str, state: BotState) -> None:
         try: price = Decimal(text.replace(",", ".").replace("¥", "").replace("￥", "")); assert price > 0
         except (InvalidOperation, AssertionError): send_message(chat_id, "Введите положительную цену."); return
         data = read_order_state(current, "order_price"); data["price"] = str(price); state.states[chat_id] = make_order_state("order_confirmation", data)
-        link = escape(data["link"], quote=True)
-        send_message(chat_id, f"<b>Ссылка на товар:</b> <a href=\"{link}\">{link}</a>\n<b>Количество товара:</b> {data['quantity']}\n<b>Размер товара:</b> {escape(data['size'])}\n<b>Стоимость в {escape(data['currency'])}:</b> {price}\n\n⚠️ Если Вы по ошибке оплатили неверную сумму и хотите вернуть свои деньги обратно, заявка на возврат средств обрабатывается в течение <b>7 рабочих дней</b>. Будьте внимательны!")
-        send_message(chat_id, "Проверьте данные заявки:", reply_markup=confirmation_keyboard()); return
+        items = [*state.order_carts.get(chat_id, []), data]
+        send_message(chat_id, order_summary_text(items), reply_markup=confirmation_keyboard()); return
     if current.startswith("order_confirmation:"):
         data = read_order_state(current, "order_confirmation")
-        if text == BUTTON_EDIT_ORDER: state.states[chat_id] = "platform"; send_message(chat_id, "Начнём оформление заново. Выберите платформу:", reply_markup=platform_keyboard()); return
-        if text == BUTTON_ADD_PRODUCT: state.states[chat_id] = "platform"; send_message(chat_id, "Добавим новый товар. Выберите платформу:", reply_markup=platform_keyboard()); return
+        if text == BUTTON_EDIT_ORDER:
+            state.delivery_preferences.pop(chat_id, None)
+            state.order_carts.pop(chat_id, None)
+            state.states[chat_id] = "platform"; send_message(chat_id, "Начнём оформление заново. Выберите платформу:", reply_markup=platform_keyboard()); return
+        if text == BUTTON_ADD_PRODUCT:
+            state.order_carts.setdefault(chat_id, []).append(data)
+            state.states[chat_id] = "platform"; send_message(chat_id, "Добавим новый товар. Выберите платформу:", reply_markup=platform_keyboard()); return
         if text == BUTTON_CONFIRM_ORDER:
-            try: submit_order(state, chat_id, data); state.states[chat_id] = make_order_state("order_confirmed", data); send_message(chat_id, "✅ Заявка отправлена менеджеру.", reply_markup=main_keyboard())
+            try:
+                items = [*state.order_carts.pop(chat_id, []), data]
+                submit_order(state, chat_id, items)
+                state.states[chat_id] = make_order_state("order_confirmed", data)
+                send_message(chat_id, f"✅ Заявка отправлена менеджеру.\n\n{order_total_text(items)}", reply_markup=main_keyboard())
             except (urllib.error.URLError, RuntimeError, ValueError): log.exception("Could not submit order"); send_message(chat_id, "Ошибка. Попробуйте позже.", reply_markup=confirmation_keyboard())
             return
         send_message(chat_id, "Выберите «📝 Изменить» или «✅ Верно».", reply_markup=confirmation_keyboard()); return
 
-    if text == BUTTON_ORDER: state.states[chat_id] = "platform"; send_message(chat_id, "Выберите платформу:", reply_markup=platform_keyboard())
+    if text == BUTTON_ORDER:
+        state.delivery_preferences.pop(chat_id, None)
+        state.order_carts.pop(chat_id, None)
+        state.states[chat_id] = "platform"; send_message(chat_id, "Выберите платформу:", reply_markup=platform_keyboard())
     elif text == BUTTON_CALCULATOR: state.states[chat_id] = "calculator_platform"; send_message(chat_id, "Выберите площадку для расчёта:", reply_markup=platform_keyboard())
     elif text == BUTTON_QUESTION: state.states[chat_id] = "question"; send_message(chat_id, "Напишите свой вопрос одним сообщением.")
     elif text == BUTTON_FAQ: send_message(chat_id, "<b>Частые вопросы</b>\n\n• Срок выкупа: обычно 1–2 рабочих дня.\n• Доставка: рассчитывается отдельно по весу и направлению.\n• Оплата: только внутри этого бота.\n• Для расчёта отправьте ссылку на товар менеджеру.")
@@ -216,7 +291,15 @@ def handle_update(update: dict[str, Any], state: BotState) -> None:
     state.customer_profiles[chat_id] = {"username": sender.get("username", ""), "first_name": sender.get("first_name", "Клиент"), "last_name": sender.get("last_name", "")}
     if str(chat_id) == settings.forum_chat_id:
         customer = state.thread_users.get(message.get("message_thread_id"))
-        if customer is not None and not sender.get("is_bot"): relay_manager(message, customer)
+        command = (message.get("text") or "").strip().lower().split("@", 1)[0]
+        is_manager = sender.get("username", "").lower().lstrip("@") == settings.manager_username.lower()
+        if customer is not None and command in {"/удалить", "/delete"} and is_manager and message.get("reply_to_message"):
+            try:
+                delete_forum_message_and_copy(state, message)
+            except (urllib.error.URLError, RuntimeError, ValueError):
+                log.exception("Could not delete synchronized message")
+            return
+        if customer is not None and not sender.get("is_bot"): relay_manager(message, customer, state)
         return
     if chat_id in state.forum_threads and not sender.get("is_bot") and message.get("text"):
         current = state.states.get(chat_id, "")
@@ -228,7 +311,7 @@ def handle_update(update: dict[str, Any], state: BotState) -> None:
             BUTTON_ADD_PRODUCT, BUTTON_CONFIRM_ORDER, BUTTON_USD, BUTTON_EUR, *PLATFORM_BUTTONS, *CATEGORY_BUTTONS,
         }
         if (not current or current.startswith("order_confirmed:")) and not message["text"].startswith("/") and message["text"] not in menu_actions:
-            relay_customer(message, state.forum_threads[chat_id]); return
+            relay_customer(message, state.forum_threads[chat_id], state); return
     if message.get("photo"): handle_photo(chat_id, message["message_id"], state)
     elif message.get("document") and ((message["document"].get("mime_type") or "").startswith("image/") or (message["document"].get("file_name") or "").lower().endswith((".jpg", ".jpeg", ".png", ".webp"))): handle_photo(chat_id, message["message_id"], state)
     elif message.get("text"): handle_text(chat_id, message["text"], state)

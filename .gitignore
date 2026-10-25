@@ -3,4 +3,5 @@ __pycache__/
 .DS_Store
 .env
 forum_threads.json
+message_links.json
 order_counter.txt

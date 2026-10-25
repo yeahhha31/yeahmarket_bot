@@ -17,6 +17,10 @@ class BotState:
     def __init__(self) -> None:
         self.states: dict[int, str] = {}
         self.order_photo_messages: dict[int, int] = {}
+        self.delivery_preferences: dict[int, str] = {}
+        self.order_carts: dict[int, list[dict[str, str]]] = {}
         self.customer_profiles: dict[int, dict[str, str]] = {}
         self.forum_threads: dict[int, int] = {}
         self.thread_users: dict[int, int] = {}
+        # forum message id -> customer chat/message ids for synchronized deletion
+        self.message_links: dict[int, dict[str, int | None]] = {}

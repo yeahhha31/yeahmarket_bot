@@ -20,14 +20,15 @@ BUTTON_EUR = "💶 Евро (EUR)"
 
 PLATFORM_BUTTONS = (
     "Pinduoduo", "Poizon", "95", "1688", "Рыбка (Goofish)",
-    "eBAY", "Amazon", "Grailed", "Farfetch", BUTTON_CUSTOM_PLATFORM,
+    "eBAY", "Amazon", "Grailed", "Taobao", BUTTON_CUSTOM_PLATFORM,
 )
 CATEGORY_BUTTONS = (
     "👟 Обувь", "🧥 Верхняя одежда", "👖 Штаны", "👙 Нижнее белье",
     "🧢 Головные уборы", "🧦 Носки", "👜 Сумки / рюкзаки", "👓 Аксессуары",
     "💄 Косметика", "🏀 Спорт", "🧸 Фигурки",
 )
-FOREIGN_PLATFORMS = {"eBAY", "Amazon", "Grailed", "Farfetch"}
+FOREIGN_PLATFORMS = {"eBAY", "Amazon", "Grailed"}
+CHINESE_PLATFORMS = {"Pinduoduo", "Poizon", "95", "1688", "Рыбка (Goofish)", "Taobao"}
 WELCOME_TEXT = """😉 Добро пожаловать в бот канала Yeahmarket!
 
 Наша группа поможет Вам выкупить товары с <b>ЛЮБЫХ ПЛОЩАДОК</b>, например:
@@ -39,7 +40,7 @@ WELCOME_TEXT = """😉 Добро пожаловать в бот канала Ye
 ⑥ eBAY
 ⑦ Amazon
 ⑧ Grailed
-⑨ Farfetch
+⑨ Taobao
 ⑩ и другие площадки.
 
 Для оформления заказа нажмите кнопку «🛍️ Оформить заказ», затем выберите нужную площадку в меню.

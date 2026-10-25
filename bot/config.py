@@ -39,6 +39,7 @@ class Settings:
     example_product_image: Path
     order_counter: Path
     forum_threads: Path
+    message_links: Path
     log_level: str
 
     @property
@@ -60,6 +61,7 @@ settings = Settings(
     example_product_image=Path(os.getenv("EXAMPLE_PRODUCT_IMAGE", ROOT / "IMG_2905.PNG")),
     order_counter=ROOT / "order_counter.txt",
     forum_threads=ROOT / "forum_threads.json",
+    message_links=ROOT / "message_links.json",
     log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
 )
 
