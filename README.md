@@ -1,16 +1,28 @@
 # yeahmarket_bot
 
-## Запуск
+## Запуск в Docker
 
 1. Создайте бота через `@BotFather` и получите токен.
 2. Откройте файл `.env` и вставьте токен в строку `BOT_TOKEN=`.
-3. Запустите бота:
+3. Соберите и запустите контейнер:
 
 ```bash
-python main.py
+docker compose up -d --build
 ```
 
 Для ссылок в кнопках можно задать `ORDER_URL`, `BARAHOLKA_URL`, `IOS_URL`, `ANDROID_URL` и `MANAGER_USERNAME`.
+
+Посмотреть журнал: `docker compose logs -f bot`. Остановить: `docker compose down`.
+
+Данные заявок, тем форума и счётчика сохраняются в Docker volume `bot-data`; команда `docker compose down` их не удаляет.
+
+## Тесты
+
+Тестовый набор использует только стандартную библиотеку Python и не выполняет запросов к Telegram или товарным сайтам:
+
+```bash
+python -m unittest discover -s tests -v
+```
 
 ## Структура
 

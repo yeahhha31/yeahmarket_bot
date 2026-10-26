@@ -1,0 +1,11 @@
+.git
+.idea
+.venv
+__pycache__
+*.py[cod]
+.env
+data
+tests
+forum_threads.json
+message_links.json
+order_counter.txt

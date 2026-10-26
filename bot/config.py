@@ -23,6 +23,8 @@ def load_env_file() -> None:
 
 load_env_file()
 
+DATA_DIR = Path(os.getenv("DATA_DIR", ROOT))
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -35,7 +37,6 @@ class Settings:
     manager_chat_id: str
     forum_chat_id: str
     cny_usdt_rate: Decimal
-    welcome_image: Path
     example_product_image: Path
     order_counter: Path
     forum_threads: Path
@@ -57,11 +58,10 @@ settings = Settings(
     manager_chat_id=os.getenv("MANAGER_CHAT_ID", "@yeahhha31").strip(),
     forum_chat_id=os.getenv("FORUM_CHAT_ID", "-1003904305474").strip(),
     cny_usdt_rate=Decimal(os.getenv("CNY_USDT_RATE", "0.183")),
-    welcome_image=Path(os.getenv("WELCOME_IMAGE", ROOT / "china_fairy_tale.png")),
     example_product_image=Path(os.getenv("EXAMPLE_PRODUCT_IMAGE", ROOT / "IMG_2905.PNG")),
-    order_counter=ROOT / "order_counter.txt",
-    forum_threads=ROOT / "forum_threads.json",
-    message_links=ROOT / "message_links.json",
+    order_counter=DATA_DIR / "order_counter.txt",
+    forum_threads=DATA_DIR / "forum_threads.json",
+    message_links=DATA_DIR / "message_links.json",
     log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
 )
 
