@@ -9,7 +9,7 @@ from typing import Any
 
 from .config import log, settings
 from .constants import *
-from .forum import client_label, delete_forum_message_and_copy, relay_customer, relay_manager, submit_order, submit_question
+from .forum import client_label, delete_forum_message_and_copy, relay_customer, relay_manager, submit_order, submit_photo_search, submit_question
 from .keyboards import *
 from .state import BotState, make_order_state, read_order_state
 from .telegram_api import request, send_local_photo, send_message
@@ -81,8 +81,8 @@ def begin_currency(states: dict[int, str], chat_id: int, platform: str) -> None:
         states[chat_id] = f"currency:{platform}"
         send_message(chat_id, f"Платформа <b>{platform}</b> выбрана. Укажите валюту товара:", reply_markup=currency_keyboard())
     else:
-        states[chat_id] = f"category:{platform}|CNY"
-        send_message(chat_id, f"Платформа <b>{platform}</b> выбрана. Цена указывается в юанях (CNY). Выберите категорию товара:", reply_markup=category_keyboard())
+        states[chat_id] = f"delivery:{platform}|CNY"
+        send_message(chat_id, f"Платформа <b>{platform}</b> выбрана. Цена указывается в юанях (CNY). Укажите способ доставки:", reply_markup=delivery_keyboard())
 
 
 def handle_text(chat_id: int, text: str, state: BotState) -> None:
@@ -101,6 +101,10 @@ def handle_text(chat_id: int, text: str, state: BotState) -> None:
     if text == BUTTON_OTHER_MENU:
         state.states[chat_id] = "other_menu"
         send_message(chat_id, "Выберите нужный раздел:", reply_markup=other_keyboard())
+        return
+    if text == BUTTON_FIND_BY_PHOTO:
+        state.states[chat_id] = "photo_search"
+        send_message(chat_id, "🖼 Пришлите фото товара, который нужно найти.", reply_markup={"remove_keyboard": True})
         return
     if current == "other_menu" and text == BUTTON_BACK:
         state.states.pop(chat_id, None)
@@ -181,53 +185,33 @@ def handle_text(chat_id: int, text: str, state: BotState) -> None:
         else:
             currency = text.upper()
             if not currency.isalpha() or len(currency) > 10: send_message(chat_id, "Напишите валюту буквами, например: <b>CNY</b>."); return
-        state.states[chat_id] = f"category:{platform}|{currency}"; send_message(chat_id, "Выберите категорию товара:", reply_markup=category_keyboard()); return
-    if current.startswith("category:"):
-        platform, currency = current.split(":", 1)[1].split("|", 1)
-        if text == BUTTON_BACK:
-            state.states[chat_id] = f"currency:{platform}"; send_message(chat_id, "Выберите валюту:", reply_markup=currency_keyboard() if platform in FOREIGN_PLATFORMS else category_keyboard()); return
-        if text in CATEGORY_BUTTONS:
-            if platform not in CHINESE_PLATFORMS:
-                state.states[chat_id] = f"order_photo:{platform}|{currency}|{text}|Не указана"
-                product_photo_prompt(chat_id)
-            elif chat_id in state.delivery_preferences:
-                delivery = state.delivery_preferences[chat_id]
-                state.states[chat_id] = f"order_photo:{platform}|{currency}|{text}|{delivery}"
+        if platform in CHINESE_PLATFORMS:
+            state.states[chat_id] = f"delivery:{platform}|{currency}"
+            if chat_id in state.delivery_preferences:
+                state.states[chat_id] = f"order_photo:{platform}|{currency}|{state.delivery_preferences[chat_id]}"
                 product_photo_prompt(chat_id)
             else:
-                state.states[chat_id] = f"delivery:{platform}|{currency}|{text}"; send_message(chat_id, "📦 <b>Укажите способ доставки:</b>\n\n✈️ Авиа — 3–10 дней, около $35/кг\n🚚 Авто — ~20 дней, около $8/кг", reply_markup=delivery_keyboard())
-            return
-        if text == BUTTON_OTHER_CATEGORY:
-            state.states[chat_id] = f"custom_category:{platform}|{currency}"; send_message(chat_id, "Введите категорию товара своими словами."); return
-        send_message(chat_id, "Выберите категорию кнопкой ниже.", reply_markup=category_keyboard()); return
-    if current.startswith("custom_category:"):
-        platform, currency = current.split(":", 1)[1].split("|", 1)
-        if platform not in CHINESE_PLATFORMS:
-            state.states[chat_id] = f"order_photo:{platform}|{currency}|{text}|Не указана"
-            product_photo_prompt(chat_id)
-        elif chat_id in state.delivery_preferences:
-            delivery = state.delivery_preferences[chat_id]
-            state.states[chat_id] = f"order_photo:{platform}|{currency}|{text}|{delivery}"
-            product_photo_prompt(chat_id)
+                send_message(chat_id, "📦 <b>Укажите способ доставки:</b>\n\n✈️ Авиа — 3–10 дней, около $35/кг\n🚚 Авто — ~20 дней, около $8/кг", reply_markup=delivery_keyboard())
         else:
-            state.states[chat_id] = f"delivery:{platform}|{currency}|{text}"; send_message(chat_id, "📦 <b>Укажите способ доставки:</b>\n\n✈️ Авиа — 3–10 дней, около $35/кг\n🚚 Авто — ~20 дней, около $8/кг", reply_markup=delivery_keyboard())
+            state.states[chat_id] = f"order_photo:{platform}|{currency}|Не указана"
+            product_photo_prompt(chat_id)
         return
     if current.startswith("delivery:"):
-        platform, currency, category = current.split(":", 1)[1].split("|", 2)
-        if text == BUTTON_BACK: state.states[chat_id] = f"category:{platform}|{currency}"; send_message(chat_id, "Выберите категорию:", reply_markup=category_keyboard()); return
+        platform, currency = current.split(":", 1)[1].split("|", 1)
+        if text == BUTTON_BACK: state.states[chat_id] = f"currency:{platform}"; send_message(chat_id, "Выберите валюту:", reply_markup=currency_keyboard() if platform in FOREIGN_PLATFORMS else platform_keyboard()); return
         if text in {BUTTON_AIR_DELIVERY, BUTTON_AUTO_DELIVERY}:
             state.delivery_preferences[chat_id] = text
-            state.states[chat_id] = f"order_photo:{platform}|{currency}|{category}|{text}"; product_photo_prompt(chat_id); return
+            state.states[chat_id] = f"order_photo:{platform}|{currency}|{text}"; product_photo_prompt(chat_id); return
         send_message(chat_id, "Выберите способ доставки кнопкой ниже.", reply_markup=delivery_keyboard()); return
     if current.startswith("order_link:"):
-        parts = current.split(":", 1)[1].split("|", 3)
-        if len(parts) == 3: platform, category, delivery = parts; currency = "CNY"
-        elif len(parts) == 4: platform, currency, category, delivery = parts
+        parts = current.split(":", 1)[1].split("|", 2)
+        if len(parts) == 2: platform, delivery = parts; currency = "CNY"
+        elif len(parts) == 3: platform, currency, delivery = parts
         else: state.states.pop(chat_id, None); send_message(chat_id, "Ошибка. Попробуйте начать оформление заново."); return
         send_message(chat_id, "⏳ Проверяю ссылку на товар...")
         valid, error = check_product_link(text)
         if not valid: send_message(chat_id, f"❌ {error}\n\nОтправьте рабочую ссылку ещё раз."); return
-        data = {"platform": platform, "currency": currency, "category": category, "delivery": delivery, "link": text}
+        data = {"platform": platform, "currency": currency, "delivery": delivery, "link": text}
         if chat_id in state.order_photo_messages: data["photo_message_id"] = str(state.order_photo_messages[chat_id])
         state.states[chat_id] = make_order_state("order_quantity", data); send_message(chat_id, "Ссылка получена. Укажите количество товара целым числом."); return
     if current.startswith("order_quantity:"):
@@ -277,6 +261,15 @@ def handle_text(chat_id: int, text: str, state: BotState) -> None:
 
 def handle_photo(chat_id: int, message_id: int, state: BotState) -> None:
     current = state.states.get(chat_id, "")
+    if current == "photo_search":
+        try:
+            submit_photo_search(state, chat_id, message_id)
+            state.states.pop(chat_id, None)
+            send_message(chat_id, "✅ Фото отправлено менеджеру. Мы попробуем найти этот товар.", reply_markup=main_keyboard())
+        except (urllib.error.URLError, RuntimeError, ValueError):
+            log.exception("Could not submit photo search")
+            send_message(chat_id, "Не удалось отправить фото. Попробуйте ещё раз.", reply_markup=main_keyboard())
+        return
     if not current.startswith("order_photo:"):
         send_message(chat_id, "Отправьте фото после выбора доставки.", reply_markup=main_keyboard()); return
     state.order_photo_messages[chat_id] = message_id
@@ -304,11 +297,11 @@ def handle_update(update: dict[str, Any], state: BotState) -> None:
     if chat_id in state.forum_threads and not sender.get("is_bot") and message.get("text"):
         current = state.states.get(chat_id, "")
         menu_actions = {
-            BUTTON_ORDER, BUTTON_CALCULATOR, BUTTON_QUESTION, BUTTON_OTHER_MENU,
+            BUTTON_ORDER, BUTTON_CALCULATOR, BUTTON_FIND_BY_PHOTO, BUTTON_QUESTION, BUTTON_OTHER_MENU,
             BUTTON_FAQ, BUTTON_TRACKING, BUTTON_BARAHOLKA, BUTTON_IOS, BUTTON_ANDROID,
-            BUTTON_BACK, BUTTON_CUSTOM_PLATFORM, BUTTON_OTHER_CATEGORY,
+            BUTTON_BACK, BUTTON_CUSTOM_PLATFORM,
             BUTTON_AIR_DELIVERY, BUTTON_AUTO_DELIVERY, BUTTON_EDIT_ORDER,
-            BUTTON_ADD_PRODUCT, BUTTON_CONFIRM_ORDER, BUTTON_USD, BUTTON_EUR, *PLATFORM_BUTTONS, *CATEGORY_BUTTONS,
+            BUTTON_ADD_PRODUCT, BUTTON_CONFIRM_ORDER, BUTTON_USD, BUTTON_EUR, *PLATFORM_BUTTONS,
         }
         if (not current or current.startswith("order_confirmed:")) and not message["text"].startswith("/") and message["text"] not in menu_actions:
             relay_customer(message, state.forum_threads[chat_id], state); return

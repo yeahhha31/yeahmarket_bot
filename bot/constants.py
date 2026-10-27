@@ -3,13 +3,13 @@ BUTTON_CALCULATOR = "💰 Калькулятор стоимости"
 BUTTON_FAQ = "📚 Ответы на популярные вопросы"
 BUTTON_TRACKING = "🔍 Отследить посылку"
 BUTTON_QUESTION = "☎️ Задать вопрос"
+BUTTON_FIND_BY_PHOTO = "🔎 Найти товар по фото"
 BUTTON_BARAHOLKA = "🏷️ Барахолка"
 BUTTON_IOS = "📲 Скачать POIZON iOS"
 BUTTON_ANDROID = "📲 Скачать POIZON Android"
 BUTTON_OTHER_MENU = "Другое"
 BUTTON_CUSTOM_PLATFORM = "Ваша платформа"
 BUTTON_BACK = "◀️ Назад"
-BUTTON_OTHER_CATEGORY = "📦 Другая"
 BUTTON_AIR_DELIVERY = "✈️ Авиа доставка"
 BUTTON_AUTO_DELIVERY = "🚚 Авто доставка"
 BUTTON_EDIT_ORDER = "📝 Изменить"
@@ -21,11 +21,6 @@ BUTTON_EUR = "💶 Евро (EUR)"
 PLATFORM_BUTTONS = (
     "Pinduoduo", "Poizon", "95", "1688", "Рыбка (Goofish)",
     "eBAY", "Amazon", "Grailed", "Taobao", BUTTON_CUSTOM_PLATFORM,
-)
-CATEGORY_BUTTONS = (
-    "👟 Обувь", "🧥 Верхняя одежда", "👖 Штаны", "👙 Нижнее белье",
-    "🧢 Головные уборы", "🧦 Носки", "👜 Сумки / рюкзаки", "👓 Аксессуары",
-    "💄 Косметика", "🏀 Спорт", "🧸 Фигурки",
 )
 FOREIGN_PLATFORMS = {"eBAY", "Amazon", "Grailed"}
 CHINESE_PLATFORMS = {"Pinduoduo", "Poizon", "95", "1688", "Рыбка (Goofish)", "Taobao"}

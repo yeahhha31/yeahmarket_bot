@@ -6,7 +6,7 @@ from .constants import *
 
 
 def main_keyboard() -> dict[str, Any]:
-    return {"keyboard": [[BUTTON_ORDER], [BUTTON_CALCULATOR], [BUTTON_QUESTION], [BUTTON_OTHER_MENU]], "resize_keyboard": True, "is_persistent": True, "input_field_placeholder": "Выберите действие"}
+    return {"keyboard": [[BUTTON_ORDER], [BUTTON_CALCULATOR], [BUTTON_FIND_BY_PHOTO], [BUTTON_QUESTION], [BUTTON_OTHER_MENU]], "resize_keyboard": True, "is_persistent": True, "input_field_placeholder": "Выберите действие"}
 
 
 def other_keyboard() -> dict[str, Any]:
@@ -15,13 +15,7 @@ def other_keyboard() -> dict[str, Any]:
 
 def platform_keyboard() -> dict[str, Any]:
     rows = [list(PLATFORM_BUTTONS[i:i + 2]) for i in range(0, len(PLATFORM_BUTTONS), 2)]
-    return {"keyboard": rows + [[BUTTON_BACK]], "resize_keyboard": True, "one_time_keyboard": True, "input_field_placeholder": "Выберите платформу"}
-
-
-def category_keyboard() -> dict[str, Any]:
-    rows = [list(CATEGORY_BUTTONS[i:i + 2]) for i in range(0, 8, 2)] + [[CATEGORY_BUTTONS[8]]]
-    rows += [list(CATEGORY_BUTTONS[i:i + 2]) for i in range(9, len(CATEGORY_BUTTONS), 2)]
-    return {"keyboard": rows + [[BUTTON_OTHER_CATEGORY], [BUTTON_BACK]], "resize_keyboard": True, "one_time_keyboard": True, "input_field_placeholder": "Выберите категорию"}
+    return {"keyboard": rows + [[BUTTON_FIND_BY_PHOTO], [BUTTON_BACK]], "resize_keyboard": True, "one_time_keyboard": True, "input_field_placeholder": "Выберите платформу"}
 
 
 def currency_keyboard() -> dict[str, Any]:

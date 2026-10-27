@@ -13,7 +13,7 @@ from .telegram_api import request, send_message
 def get_or_create_topic(state: BotState, chat_id: int, order_data: dict[str, str]) -> int:
     if chat_id in state.forum_threads:
         return state.forum_threads[chat_id]
-    topic = request("createForumTopic", {"chat_id": settings.forum_chat_id, "name": f"Заявка {next_order_number()} | {order_data.get('platform', 'Общение')} | {order_data.get('category', 'Вопросы')}"[:128]})
+    topic = request("createForumTopic", {"chat_id": settings.forum_chat_id, "name": f"Заявка {next_order_number()} | {order_data.get('platform', 'Общение')}"[:128]})
     thread_id = topic["message_thread_id"]
     state.forum_threads[chat_id] = thread_id
     state.thread_users[thread_id] = chat_id
@@ -48,7 +48,6 @@ def submit_order(state: BotState, chat_id: int, items: list[dict[str, str]]) -> 
             f"<b>Товар {number}</b>",
             f"Платформа: <b>{escape(data['platform'])}</b>",
             f"Валюта: <b>{escape(data['currency'])}</b>",
-            f"Категория: <b>{escape(data['category'])}</b>",
             f"Доставка: <b>{escape(data['delivery'])}</b>",
             f"Ссылка: <a href=\"{link}\">{link}</a>",
             f"Количество: <b>{data['quantity']}</b>",
@@ -73,6 +72,18 @@ def submit_order(state: BotState, chat_id: int, items: list[dict[str, str]]) -> 
 def submit_question(state: BotState, chat_id: int, question: str) -> None:
     thread_id = get_or_create_topic(state, chat_id, {"platform": "Общение"})
     send_message(settings.forum_chat_id, f"❓ <b>Вопрос клиента</b>\n\n{escape(question)}", message_thread_id=thread_id)
+
+
+def submit_photo_search(state: BotState, chat_id: int, message_id: int) -> None:
+    thread_id = get_or_create_topic(state, chat_id, {"platform": "Поиск по фото"})
+    copied = request("copyMessage", {
+        "chat_id": settings.forum_chat_id,
+        "from_chat_id": chat_id,
+        "message_id": message_id,
+        "message_thread_id": thread_id,
+    })
+    _link_message(state, copied["message_id"], chat_id, message_id)
+    send_message(settings.forum_chat_id, "🔎 Клиент хочет найти товар по фото.", message_thread_id=thread_id)
 
 
 def relay_customer(message: dict[str, Any], thread_id: int, state: BotState) -> None:
