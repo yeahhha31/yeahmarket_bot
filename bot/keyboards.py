@@ -15,7 +15,7 @@ def other_keyboard() -> dict[str, Any]:
 
 def platform_keyboard() -> dict[str, Any]:
     rows = [list(PLATFORM_BUTTONS[i:i + 2]) for i in range(0, len(PLATFORM_BUTTONS), 2)]
-    return {"keyboard": rows + [[BUTTON_FIND_BY_PHOTO], [BUTTON_BACK]], "resize_keyboard": True, "one_time_keyboard": True, "input_field_placeholder": "Выберите платформу"}
+    return {"keyboard": [[BUTTON_FIND_BY_PHOTO]] + rows + [[BUTTON_BACK]], "resize_keyboard": True, "one_time_keyboard": True, "input_field_placeholder": "Выберите платформу"}
 
 
 def currency_keyboard() -> dict[str, Any]:

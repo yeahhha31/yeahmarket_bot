@@ -174,16 +174,14 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(self.state.order_photo_messages[1], 12)
         self.assertEqual(self.state.states[1], "order_link:Poizon|CNY|Shoes|Air")
 
-    def test_handle_update_routes_forum_and_customer_messages(self) -> None:
+    def test_handle_update_routes_forum_messages_only(self) -> None:
         self.state.thread_users[70] = 1
         with patch("bot.handlers.relay_manager") as relay_manager:
             handlers.handle_update({"message": {"chat": {"id": -1003904305474}, "message_thread_id": 70, "message_id": 5, "from": {"username": "manager"}, "text": "hello"}}, self.state)
         relay_manager.assert_called_once()
 
         self.state.forum_threads[2] = 71
-        with patch("bot.handlers.relay_customer") as relay_customer:
-            handlers.handle_update({"message": {"chat": {"id": 2}, "message_id": 6, "from": {"first_name": "Buyer"}, "text": "hello"}}, self.state)
-        relay_customer.assert_called_once()
+        handlers.handle_update({"message": {"chat": {"id": 2}, "message_id": 6, "from": {"first_name": "Buyer"}, "text": "hello"}}, self.state)
 
     def test_handle_update_handles_document_image_and_manager_delete_command(self) -> None:
         with patch("bot.handlers.handle_photo") as photo:

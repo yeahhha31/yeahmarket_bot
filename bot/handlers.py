@@ -33,7 +33,7 @@ def order_summary_text(items: list[dict[str, str]]) -> str:
         ])
         if data["currency"] == "CNY":
             rubles = (Decimal(data["price"]) * Decimal(data["quantity"]) * Decimal("0.495") * Decimal("1.10")).quantize(Decimal("0.01"))
-            lines.append(f"Стоимость в рублях: {rubles} ₽")
+            lines.append(f"Стоимость в рублях: {rubles} BYN")
         lines.append("")
     return "\n".join(lines).rstrip()
 
@@ -296,15 +296,9 @@ def handle_update(update: dict[str, Any], state: BotState) -> None:
         return
     if chat_id in state.forum_threads and not sender.get("is_bot") and message.get("text"):
         current = state.states.get(chat_id, "")
-        menu_actions = {
-            BUTTON_ORDER, BUTTON_CALCULATOR, BUTTON_FIND_BY_PHOTO, BUTTON_QUESTION, BUTTON_OTHER_MENU,
-            BUTTON_FAQ, BUTTON_TRACKING, BUTTON_BARAHOLKA, BUTTON_IOS, BUTTON_ANDROID,
-            BUTTON_BACK, BUTTON_CUSTOM_PLATFORM,
-            BUTTON_AIR_DELIVERY, BUTTON_AUTO_DELIVERY, BUTTON_EDIT_ORDER,
-            BUTTON_ADD_PRODUCT, BUTTON_CONFIRM_ORDER, BUTTON_USD, BUTTON_EUR, *PLATFORM_BUTTONS,
-        }
-        if (not current or current.startswith("order_confirmed:")) and not message["text"].startswith("/") and message["text"] not in menu_actions:
-            relay_customer(message, state.forum_threads[chat_id], state); return
+        if current.startswith("order_confirmed:") and not message["text"].startswith("/"):
+            relay_customer(message, state.forum_threads[chat_id], state)
+            return
     if message.get("photo"): handle_photo(chat_id, message["message_id"], state)
     elif message.get("document") and ((message["document"].get("mime_type") or "").startswith("image/") or (message["document"].get("file_name") or "").lower().endswith((".jpg", ".jpeg", ".png", ".webp"))): handle_photo(chat_id, message["message_id"], state)
     elif message.get("text"): handle_text(chat_id, message["text"], state)
