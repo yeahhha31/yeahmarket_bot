@@ -127,21 +127,21 @@ class ForumTests(unittest.TestCase):
         self.assertEqual(state.forum_threads, {7: 70})
         self.assertEqual(state.thread_users, {70: 7})
         self.assertEqual(request.call_args.args[0], "createForumTopic")
-        self.assertIn("Заявка 9 | A&B | X", request.call_args.args[1]["name"])
+        self.assertIn("Заявка 9 | A&B", request.call_args.args[1]["name"])
         save.assert_called_once_with(state)
 
     def test_submit_order_formats_escapes_and_links_text_and_photo(self) -> None:
         state = BotState()
         state.customer_profiles[7] = {"username": "buyer"}
-        item = {"platform": "A&B", "currency": "CNY", "category": "<cat>", "delivery": "air", "link": "https://e.test/?a=1&b=2", "quantity": "2", "size": "M<", "price": "12.50", "photo_message_id": "33"}
+        item = {"platform": "A&B", "currency": "CNY", "delivery": "air", "link": "https://e.test/?a=1&b=2", "quantity": "2", "size": "M<", "price": "12.50", "photo_message_id": "33"}
         with patch("bot.forum.get_or_create_topic", return_value=70), patch("bot.forum.send_message", return_value={"message_id": 500}) as send, patch("bot.forum.request", return_value={"message_id": 501}) as request, patch("bot.forum.save_message_links") as save_links:
             self.assertEqual(forum.submit_order(state, 7, [item]), 70)
 
         text = send.call_args.args[1]
         self.assertIn("A&amp;B", text)
-        self.assertIn("&lt;cat&gt;", text)
+        self.assertNotIn("Категория", text)
         self.assertIn("25.00 CNY", text)
-        self.assertIn("13.61 ₽", text)
+        self.assertIn("14 ₽", text)
         self.assertIn("a=1&amp;b=2", text)
         self.assertEqual(request.call_args.args[0], "copyMessage")
         self.assertEqual(state.message_links[500]["customer_message_id"], None)

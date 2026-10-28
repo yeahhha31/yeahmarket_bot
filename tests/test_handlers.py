@@ -64,13 +64,13 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(self.state.states[1], "calculator_amount:CNY")
         handlers.handle_text(1, "100", self.state)
         self.assertNotIn(1, self.state.states)
-        self.assertIn("54.45 ₽", self.last_text())
+        self.assertIn("55 ₽", self.last_text())
 
         handlers.handle_text(1, BUTTON_CALCULATOR, self.state)
         handlers.handle_text(1, "eBAY", self.state)
         handlers.handle_text(1, BUTTON_USD, self.state)
         handlers.handle_text(1, "19.9", self.state)
-        self.assertIn("19.90 USD", self.last_text())
+        self.assertIn("20 USD", self.last_text())
 
         self.state.states[1] = "calculator_custom_currency"
         handlers.handle_text(1, "btc", self.state)
@@ -89,18 +89,16 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(self.state.states[1], "calculator_amount:CNY")
         self.assertIn("положительное", self.last_text())
 
-    def test_begin_currency_selects_foreign_currency_or_chinese_category(self) -> None:
+    def test_begin_currency_selects_foreign_currency_or_chinese_delivery(self) -> None:
         handlers.begin_currency(self.state.states, 1, "Amazon")
         self.assertEqual(self.state.states[1], "currency:Amazon")
         handlers.begin_currency(self.state.states, 1, "Taobao")
-        self.assertEqual(self.state.states[1], "category:Taobao|CNY")
+        self.assertEqual(self.state.states[1], "delivery:Taobao|CNY")
 
     def test_full_chinese_order_flow_from_menu_to_confirmation(self) -> None:
         with patch("bot.handlers.product_photo_prompt") as photo_prompt, patch("bot.handlers.check_product_link", return_value=(True, "")):
             handlers.handle_text(1, BUTTON_ORDER, self.state)
             handlers.handle_text(1, "Poizon", self.state)
-            handlers.handle_text(1, CATEGORY_BUTTONS[0], self.state)
-            self.assertEqual(self.state.states[1], f"delivery:Poizon|CNY|{CATEGORY_BUTTONS[0]}")
             handlers.handle_text(1, BUTTON_AIR_DELIVERY, self.state)
             photo_prompt.assert_called_once_with(1)
             handlers.handle_photo(1, 22, self.state)
@@ -110,25 +108,23 @@ class HandlerTests(unittest.TestCase):
             handlers.handle_text(1, "12.50", self.state)
 
         data = read_order_state(self.state.states[1], "order_confirmation")
-        self.assertEqual(data, {"platform": "Poizon", "currency": "CNY", "category": CATEGORY_BUTTONS[0], "delivery": BUTTON_AIR_DELIVERY, "link": "https://example.test/item", "photo_message_id": "22", "quantity": "2", "size": "42", "price": "12.50"})
-        self.assertIn("13.61 ₽", self.last_text())
+        self.assertEqual(data, {"platform": "Poizon", "currency": "CNY", "delivery": BUTTON_AIR_DELIVERY, "link": "https://example.test/item", "photo_message_id": "22", "quantity": "2", "size": "42", "price": "12.50"})
+        self.assertIn("14 BYN", self.last_text())
 
-    def test_foreign_order_skips_delivery_and_custom_category_is_kept(self) -> None:
+    def test_foreign_order_skips_delivery(self) -> None:
         with patch("bot.handlers.product_photo_prompt") as photo_prompt:
             handlers.handle_text(1, BUTTON_ORDER, self.state)
             handlers.handle_text(1, "Amazon", self.state)
             handlers.handle_text(1, BUTTON_EUR, self.state)
-            handlers.handle_text(1, BUTTON_OTHER_CATEGORY, self.state)
-            handlers.handle_text(1, "Vintage", self.state)
 
-        self.assertEqual(self.state.states[1], "order_photo:Amazon|EUR|Vintage|Не указана")
+        self.assertEqual(self.state.states[1], "order_photo:Amazon|EUR|Не указана")
         photo_prompt.assert_called_once_with(1)
 
     def test_invalid_link_quantity_and_price_keep_current_stage(self) -> None:
-        self.state.states[1] = "order_link:Poizon|CNY|Shoes|Air"
+        self.state.states[1] = "order_link:Poizon|CNY|Air"
         with patch("bot.handlers.check_product_link", return_value=(False, "bad link")):
             handlers.handle_text(1, "https://bad.test", self.state)
-        self.assertEqual(self.state.states[1], "order_link:Poizon|CNY|Shoes|Air")
+        self.assertEqual(self.state.states[1], "order_link:Poizon|CNY|Air")
         self.assertIn("bad link", self.last_text())
 
         self.state.states[1] = 'order_quantity:{"currency": "CNY"}'
@@ -139,17 +135,17 @@ class HandlerTests(unittest.TestCase):
         self.assertIn("положительную", self.last_text())
 
     def test_add_edit_and_confirm_order_actions(self) -> None:
-        self.state.states[1] = 'order_confirmation:{"platform":"Poizon","currency":"CNY","category":"Shoes","delivery":"Air","link":"https://e.test","quantity":"1","size":"M","price":"10"}'
+        self.state.states[1] = 'order_confirmation:{"platform":"Poizon","currency":"CNY","delivery":"Air","link":"https://e.test","quantity":"1","size":"M","price":"10"}'
         handlers.handle_text(1, BUTTON_ADD_PRODUCT, self.state)
         self.assertEqual(len(self.state.order_carts[1]), 1)
         self.assertEqual(self.state.states[1], "platform")
 
-        self.state.states[1] = 'order_confirmation:{"platform":"Poizon","currency":"CNY","category":"Shoes","delivery":"Air","link":"https://e.test","quantity":"1","size":"M","price":"10"}'
+        self.state.states[1] = 'order_confirmation:{"platform":"Poizon","currency":"CNY","delivery":"Air","link":"https://e.test","quantity":"1","size":"M","price":"10"}'
         handlers.handle_text(1, BUTTON_EDIT_ORDER, self.state)
         self.assertEqual(self.state.states[1], "platform")
         self.assertNotIn(1, self.state.order_carts)
 
-        self.state.states[1] = 'order_confirmation:{"platform":"Poizon","currency":"CNY","category":"Shoes","delivery":"Air","link":"https://e.test","quantity":"1","size":"M","price":"10"}'
+        self.state.states[1] = 'order_confirmation:{"platform":"Poizon","currency":"CNY","delivery":"Air","link":"https://e.test","quantity":"1","size":"M","price":"10"}'
         with patch("bot.handlers.submit_order") as submit:
             handlers.handle_text(1, BUTTON_CONFIRM_ORDER, self.state)
         submit.assert_called_once()
@@ -160,19 +156,19 @@ class HandlerTests(unittest.TestCase):
         cny = {"link": "https://e.test/?a=1&b=2", "quantity": "2", "size": "M<", "currency": "CNY", "price": "10"}
         usd = {"link": "https://u.test", "quantity": "1", "size": "L", "currency": "USD", "price": "7.5"}
 
-        self.assertIn("10.89 ₽", handlers.order_summary_text([cny]))
+        self.assertIn("11 BYN", handlers.order_summary_text([cny]))
         total = handlers.order_total_text([cny, usd])
-        self.assertIn("20.00 CNY", total)
-        self.assertIn("7.50 USD", total)
-        self.assertIn("10.89 ₽", total)
+        self.assertIn("20 CNY", total)
+        self.assertIn("8 USD", total)
+        self.assertIn("11 ₽", total)
 
     def test_photo_only_advances_from_expected_stage(self) -> None:
         handlers.handle_photo(1, 12, self.state)
         self.assertIn("после выбора", self.last_text())
-        self.state.states[1] = "order_photo:Poizon|CNY|Shoes|Air"
+        self.state.states[1] = "order_photo:Poizon|CNY|Air"
         handlers.handle_photo(1, 12, self.state)
         self.assertEqual(self.state.order_photo_messages[1], 12)
-        self.assertEqual(self.state.states[1], "order_link:Poizon|CNY|Shoes|Air")
+        self.assertEqual(self.state.states[1], "order_link:Poizon|CNY|Air")
 
     def test_handle_update_routes_forum_messages_only(self) -> None:
         self.state.thread_users[70] = 1

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import time
 import urllib.error
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_CEILING
 from html import escape
 from typing import Any
 
@@ -14,6 +14,11 @@ from .keyboards import *
 from .state import BotState, make_order_state, read_order_state
 from .telegram_api import request, send_local_photo, send_message
 from .validation import check_product_link
+
+
+def round_money_up(value: Decimal) -> Decimal:
+    """Round positive monetary values up to the nearest whole ruble."""
+    return value.quantize(Decimal("1"), rounding=ROUND_CEILING)
 
 
 def welcome(chat_id: int) -> None:
@@ -32,7 +37,7 @@ def order_summary_text(items: list[dict[str, str]]) -> str:
             f"Стоимость в {escape(data['currency'])}: {data['price']}",
         ])
         if data["currency"] == "CNY":
-            rubles = (Decimal(data["price"]) * Decimal(data["quantity"]) * Decimal("0.495") * Decimal("1.10")).quantize(Decimal("0.01"))
+            rubles = round_money_up(Decimal(data["price"]) * Decimal(data["quantity"]) * Decimal("0.495") * Decimal("1.10"))
             lines.append(f"Стоимость в рублях: {rubles} BYN")
         lines.append("")
     return "\n".join(lines).rstrip()
@@ -47,16 +52,16 @@ def order_total_text(items: list[dict[str, str]]) -> str:
     lines = ["💳 <b>Общая стоимость заказа:</b>"]
     if len(totals) == 1:
         currency, total = next(iter(totals.items()))
-        lines.append(f"<b>{total.quantize(Decimal('0.01'))} {escape(currency)}</b>")
+        lines.append(f"<b>{round_money_up(total)} {escape(currency)}</b>")
         if currency == "CNY":
-            rubles = (total * Decimal("0.495") * Decimal("1.10")).quantize(Decimal("0.01"))
+            rubles = round_money_up(total * Decimal("0.495") * Decimal("1.10"))
             lines.append(f"<b>{rubles} ₽</b>")
     else:
         lines.append("Товары в разных валютах:")
         for currency, total in totals.items():
-            lines.append(f"• <b>{total.quantize(Decimal('0.01'))} {escape(currency)}</b>")
+            lines.append(f"• <b>{round_money_up(total)} {escape(currency)}</b>")
             if currency == "CNY":
-                rubles = (total * Decimal("0.495") * Decimal("1.10")).quantize(Decimal("0.01"))
+                rubles = round_money_up(total * Decimal("0.495") * Decimal("1.10"))
                 lines.append(f"  └ {rubles} ₽")
     return "\n".join(lines)
 
@@ -160,9 +165,9 @@ def handle_text(chat_id: int, text: str, state: BotState) -> None:
         state.states.pop(chat_id, None)
         if currency == "CNY":
             total = amount * Decimal("0.495") * Decimal("1.10")
-            result = f"Ориентировочная стоимость: <b>{total.quantize(Decimal('0.01'))} ₽</b>."
+            result = f"Ориентировочная стоимость: <b>{round_money_up(total)} ₽</b>."
         else:
-            result = f"Стоимость товара: <b>{amount.quantize(Decimal('0.01'))} {currency}</b>."
+            result = f"Стоимость товара: <b>{round_money_up(amount)} {currency}</b>."
         send_message(chat_id, result, reply_markup=main_keyboard()); return
 
     if current == "platform":

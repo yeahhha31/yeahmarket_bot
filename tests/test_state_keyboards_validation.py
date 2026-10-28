@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 from bot import constants
 from bot.keyboards import (
-    category_keyboard,
     confirmation_keyboard,
     currency_keyboard,
     delivery_keyboard,
@@ -45,23 +44,18 @@ class KeyboardTests(unittest.TestCase):
         main = main_keyboard()
         other = other_keyboard()
 
-        self.assertEqual(main["keyboard"], [[constants.BUTTON_ORDER], [constants.BUTTON_CALCULATOR], [constants.BUTTON_QUESTION], [constants.BUTTON_OTHER_MENU]])
+        self.assertEqual(main["keyboard"], [[constants.BUTTON_ORDER], [constants.BUTTON_CALCULATOR], [constants.BUTTON_FIND_BY_PHOTO], [constants.BUTTON_QUESTION], [constants.BUTTON_OTHER_MENU]])
         self.assertTrue(main["is_persistent"])
         self.assertIn([constants.BUTTON_BACK], other["keyboard"])
 
     def test_platform_keyboard_contains_every_platform_in_two_column_rows(self) -> None:
         keyboard = platform_keyboard()
-        choices = [item for row in keyboard["keyboard"][:-1] for item in row]
+        self.assertEqual(keyboard["keyboard"][0], [constants.BUTTON_FIND_BY_PHOTO])
+        choices = [item for row in keyboard["keyboard"][1:-1] for item in row]
 
         self.assertEqual(choices, list(constants.PLATFORM_BUTTONS))
-        self.assertTrue(all(len(row) <= 2 for row in keyboard["keyboard"][:-1]))
+        self.assertTrue(all(len(row) <= 2 for row in keyboard["keyboard"][1:-1]))
         self.assertEqual(keyboard["keyboard"][-1], [constants.BUTTON_BACK])
-
-    def test_category_keyboard_keeps_cosmetics_in_single_row(self) -> None:
-        keyboard = category_keyboard()
-
-        self.assertIn([constants.CATEGORY_BUTTONS[8]], keyboard["keyboard"])
-        self.assertEqual(keyboard["keyboard"][-2:], [[constants.BUTTON_OTHER_CATEGORY], [constants.BUTTON_BACK]])
 
     def test_currency_delivery_and_confirmation_keyboards_have_all_actions(self) -> None:
         self.assertEqual(currency_keyboard()["keyboard"], [[constants.BUTTON_USD], [constants.BUTTON_EUR], [constants.BUTTON_BACK]])

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_CEILING
 from html import escape
 from typing import Any
 
@@ -8,6 +8,10 @@ from .config import settings
 from .persistence import next_order_number, save, save_message_links
 from .state import BotState
 from .telegram_api import request, send_message
+
+
+def round_money_up(value: Decimal) -> Decimal:
+    return value.quantize(Decimal("1"), rounding=ROUND_CEILING)
 
 
 def get_or_create_topic(state: BotState, chat_id: int, order_data: dict[str, str]) -> int:
@@ -55,7 +59,7 @@ def submit_order(state: BotState, chat_id: int, items: list[dict[str, str]]) -> 
             f"Стоимость: <b>{total} {escape(data['currency'])}</b>",
         ])
         if data["currency"] == "CNY":
-            rubles = (total * Decimal("0.495") * Decimal("1.10")).quantize(Decimal("0.01"))
+            rubles = round_money_up(total * Decimal("0.495") * Decimal("1.10"))
             lines.append(f"Стоимость в рублях: <b>{rubles} ₽</b>")
         lines.append("")
     text = "\n".join(lines).rstrip()
