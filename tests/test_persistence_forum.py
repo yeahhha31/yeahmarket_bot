@@ -120,6 +120,7 @@ class ForumTests(unittest.TestCase):
 
     def test_get_or_create_topic_persists_new_bidirectional_mapping(self) -> None:
         state = BotState()
+        state.customer_profiles[7] = {"username": "buyer", "first_name": "Buyer", "last_name": "Name"}
         with patch("bot.forum.request", return_value={"message_thread_id": 70}) as request, patch("bot.forum.next_order_number", return_value=9), patch("bot.forum.save") as save:
             thread_id = forum.get_or_create_topic(state, 7, {"platform": "A&B", "category": "X"})
 
@@ -127,7 +128,7 @@ class ForumTests(unittest.TestCase):
         self.assertEqual(state.forum_threads, {7: 70})
         self.assertEqual(state.thread_users, {70: 7})
         self.assertEqual(request.call_args.args[0], "createForumTopic")
-        self.assertIn("Заявка 9 | A&B", request.call_args.args[1]["name"])
+        self.assertIn("Заявка 9 | A&B | @buyer", request.call_args.args[1]["name"])
         save.assert_called_once_with(state)
 
     def test_submit_order_formats_escapes_and_links_text_and_photo(self) -> None:

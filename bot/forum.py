@@ -17,7 +17,11 @@ def round_money_up(value: Decimal) -> Decimal:
 def get_or_create_topic(state: BotState, chat_id: int, order_data: dict[str, str]) -> int:
     if chat_id in state.forum_threads:
         return state.forum_threads[chat_id]
-    topic = request("createForumTopic", {"chat_id": settings.forum_chat_id, "name": f"Заявка {next_order_number()} | {order_data.get('platform', 'Общение')}"[:128]})
+    profile = state.customer_profiles.get(chat_id, {})
+    username = profile.get("username", "").strip().lstrip("@")
+    customer_name = f"@{username}" if username else " ".join(x for x in (profile.get("first_name", "Клиент"), profile.get("last_name", "")) if x) or "Клиент"
+    topic_name = f"Заявка {next_order_number()} | {order_data.get('platform', 'Общение')} | {customer_name}"
+    topic = request("createForumTopic", {"chat_id": settings.forum_chat_id, "name": topic_name[:128]})
     thread_id = topic["message_thread_id"]
     state.forum_threads[chat_id] = thread_id
     state.thread_users[thread_id] = chat_id
