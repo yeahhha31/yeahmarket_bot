@@ -91,7 +91,11 @@ def submit_photo_search(state: BotState, chat_id: int, message_id: int) -> None:
         "message_thread_id": thread_id,
     })
     _link_message(state, copied["message_id"], chat_id, message_id)
-    send_message(settings.forum_chat_id, "🔎 Клиент хочет найти товар по фото.", message_thread_id=thread_id)
+    send_message(
+        settings.forum_chat_id,
+        f"🔎 Клиент хочет найти товар по фото.\n👤 Клиент: {client_label(state, chat_id)}",
+        message_thread_id=thread_id,
+    )
 
 
 def relay_customer(message: dict[str, Any], thread_id: int, state: BotState) -> None:
